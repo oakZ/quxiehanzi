@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Poem } from '../types';
-import { BookOpen, Volume2, Sparkles, Plus, Eye, EyeOff, ClipboardList, PenTool, X, Library } from 'lucide-react';
+import { BookOpen, Volume2, Sparkles, Plus, Eye, EyeOff, ClipboardList, PenTool, X, Library, Trash2 } from 'lucide-react';
 import { speakText } from '../utils/speech';
 
 interface PoemListProps {
@@ -14,6 +14,8 @@ interface PoemListProps {
   onSelectPoem: (poem: Poem) => void;
   onSelectCharacter: (char: string) => void;
   onOpenCustomForm: () => void;
+  onDeletePoem?: (id: string) => void;
+  onEditPoem?: (poem: Poem) => void;
   selectedChar?: string;
 }
 
@@ -23,6 +25,8 @@ export const PoemList: React.FC<PoemListProps> = ({
   onSelectPoem,
   onSelectCharacter,
   onOpenCustomForm,
+  onDeletePoem,
+  onEditPoem,
   selectedChar = ''
 }) => {
   const [activeTab, setActiveTab] = useState<'primary' | 'middle' | 'custom'>('primary');
@@ -46,7 +50,9 @@ export const PoemList: React.FC<PoemListProps> = ({
    */
   const parseSentenceWithPinyin = (sentence: string, pinyinStr: string) => {
     const characters = Array.from(sentence) as string[];
-    const rawSyllables = pinyinStr.trim().split(/\s+/).filter(s => s.length > 0);
+    // Replace punctuation in pinyin with spaces before splitting to handle lack of spacing around punctuation (e.g. "é，é，é，")
+    const cleanedPinyinStr = pinyinStr.replace(/[，。？！；：、,.\?!;:]/g, ' ');
+    const rawSyllables = cleanedPinyinStr.trim().split(/\s+/).filter(s => s.length > 0);
     
     const zipped: { char: string; pinyin: string; isPunctuation: boolean }[] = [];
     let pinyinIdx = 0;
@@ -296,35 +302,81 @@ export const PoemList: React.FC<PoemListProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {filteredPoems.map((p) => {
                     const isPoemSelected = selectedPoemId === p.id;
+                    const isCustom = p.category === 'custom';
                     return (
-                      <button
+                      <div
                         key={p.id}
-                        id={`drawer-poem-${p.id}`}
-                        onClick={() => {
-                          onSelectPoem(p);
-                          setIsLibraryOpen(false);
-                        }}
-                        className={`text-left p-3 rounded-2xl border transition-all flex items-center justify-between group cursor-pointer ${
+                        className={`p-3 rounded-2xl border transition-all flex items-center justify-between group ${
                           isPoemSelected
-                            ? 'bg-amber-55/90 border-amber-300 shadow-sm ring-1 ring-amber-200'
+                            ? 'bg-amber-50/95 border-amber-300 shadow-sm ring-1 ring-amber-200'
                             : 'bg-white border-stone-150 hover:bg-stone-50/50'
                         }`}
                       >
-                        <div className="flex items-center gap-2">
-                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                        {/* Selector clickable zone */}
+                        <div
+                          id={`drawer-poem-select-${p.id}`}
+                          onClick={() => {
+                            onSelectPoem(p);
+                            setIsLibraryOpen(false);
+                          }}
+                          className="flex items-center gap-2 cursor-pointer flex-1 select-none pr-1.5"
+                        >
+                          <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
                             isPoemSelected ? 'bg-amber-500 text-white' : 'bg-stone-100 text-stone-500'
                           }`}>
                             <BookOpen className="w-4 h-4" />
                           </div>
-                          <div>
+                          <div className="min-w-0 flex-1">
                             <h4 className="font-extrabold text-stone-800 text-xs text-ellipsis overflow-hidden line-clamp-1">《{p.title}》</h4>
                             <p className="text-[10px] text-stone-400 mt-0.5">{p.dynasty} · {p.author}</p>
                           </div>
                         </div>
-                        <span className="text-[10px] bg-amber-100 text-amber-800 font-black px-1.5 py-0.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all select-none">
-                          开启 ➜
-                        </span>
-                      </button>
+
+                        {/* Actions (Delete button + Start/Edit button) */}
+                        <div className="flex items-center gap-1 shrink-0">
+                          {isCustom && onDeletePoem && (
+                            <button
+                              id={`delete-custom-${p.id}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeletePoem(p.id);
+                              }}
+                              className="p-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                              title="删除这个自选生字本"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                          {isCustom && onEditPoem ? (
+                            <button
+                              id={`drawer-poem-edit-${p.id}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditPoem(p);
+                                setIsLibraryOpen(false);
+                              }}
+                              className="text-[10px] font-black px-2.5 py-1 rounded-lg transition-all cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200"
+                            >
+                              编辑
+                            </button>
+                          ) : (
+                            <button
+                              id={`drawer-poem-go-${p.id}`}
+                              onClick={() => {
+                                onSelectPoem(p);
+                                setIsLibraryOpen(false);
+                              }}
+                              className={`text-[10px] font-black px-2 py-1 rounded-lg transition-all cursor-pointer ${
+                                isPoemSelected
+                                  ? 'bg-amber-500 text-white shadow-xs'
+                                  : 'bg-stone-100 text-stone-600 group-hover:bg-amber-100 group-hover:text-amber-800'
+                              }`}
+                            >
+                              开始
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

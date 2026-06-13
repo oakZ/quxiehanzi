@@ -25,6 +25,7 @@ export default function App() {
   const [selectedPoemId, setSelectedPoemId] = useState<string>('jing-ye-si');
   const [selectedChar, setSelectedChar] = useState<string>('明');
   const [showForm, setShowForm] = useState<boolean>(false);
+  const [editingPoem, setEditingPoem] = useState<Poem | undefined>(undefined);
 
   // History stats loaded from Local Storage
   const [history, setHistory] = useState<Record<string, CharacterHistoryItem>>({});
@@ -95,10 +96,20 @@ export default function App() {
     setPinyinForChar(foundPinyin || fallbackPinyinRecord[selectedChar] || 'zì');
   }, [selectedChar, selectedPoemId]);
 
-  // Handle saving new custom poems
+  // Handle saving new or edited custom poems
   const handleSaveCustomPoem = (newPoem: Poem) => {
-    const updated = [...poems, newPoem];
-    setPoems(updated);
+    const exists = poems.some(p => p.id === newPoem.id);
+    let updated: Poem[];
+    
+    if (exists) {
+      updated = poems.map(p => p.id === newPoem.id ? newPoem : p);
+      setPoems(updated);
+      speakText(`成功更新自选生字表：${newPoem.title}！`);
+    } else {
+      updated = [...poems, newPoem];
+      setPoems(updated);
+      speakText(`成功保存自选生字表：${newPoem.title}。快点击练一练里面的生字吧！`);
+    }
 
     // Filter out preset to save only custom ones
     const customOnly = updated.filter(p => p.category === 'custom');
@@ -113,7 +124,30 @@ export default function App() {
         setSelectedChar(firstChar);
       }
     }
-    speakText(`成功保存自选生字表：${newPoem.title}。快点击练一练里面的生字吧！`);
+  };
+
+  // Handle deleting a custom poem
+  const handleDeleteCustomPoem = (poemId: string) => {
+    if (confirm('确认要删除这个自定义生字本吗？')) {
+      const updated = poems.filter(p => p.id !== poemId);
+      setPoems(updated);
+
+      const customOnly = updated.filter(p => p.category === 'custom');
+      localStorage.setItem('hanzi_custom_poems', JSON.stringify(customOnly));
+
+      // Revert select if the currently selected poem is deleted
+      if (selectedPoemId === poemId) {
+        const nextPoem = PRESET_POEMS[0];
+        setSelectedPoemId(nextPoem.id);
+        if (nextPoem.content[0]) {
+          const firstChar = Array.from(nextPoem.content[0]).find(c => !/[，。？！；：、,.\?!;:]/.test(c));
+          if (firstChar) {
+            setSelectedChar(firstChar);
+          }
+        }
+      }
+      speakText('已成功删除自选生字本');
+    }
   };
 
   // Called when writing session finishes successfully on HanziBoard
@@ -241,7 +275,15 @@ export default function App() {
               }
             }}
             onSelectCharacter={(char) => setSelectedChar(char)}
-            onOpenCustomForm={() => setShowForm(true)}
+            onOpenCustomForm={() => {
+              setEditingPoem(undefined);
+              setShowForm(true);
+            }}
+            onDeletePoem={handleDeleteCustomPoem}
+            onEditPoem={(poem) => {
+              setEditingPoem(poem);
+              setShowForm(true);
+            }}
             selectedChar={selectedChar}
           />
 
@@ -313,11 +355,15 @@ export default function App() {
         </section>
       </main>
 
-      {/* Floating Dialog Add Form overlay */}
+      {/* Floating Dialog Add/Edit Form overlay */}
       {showForm && (
         <CustomPoemForm
+          initialPoem={editingPoem}
           onSave={handleSaveCustomPoem}
-          onClose={() => setShowForm(false)}
+          onClose={() => {
+            setShowForm(false);
+            setEditingPoem(undefined);
+          }}
         />
       )}
     </div>

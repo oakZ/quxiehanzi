@@ -10,13 +10,16 @@ import { Poem } from '../types';
 interface CustomPoemFormProps {
   onSave: (newPoem: Poem) => void;
   onClose: () => void;
+  initialPoem?: Poem;
 }
 
-export const CustomPoemForm: React.FC<CustomPoemFormProps> = ({ onSave, onClose }) => {
-  const [title, setTitle] = useState<string>('');
-  const [author, setAuthor] = useState<string>('小聪明');
-  const [dynasty, setDynasty] = useState<string>('生字本');
-  const [contentInput, setContentInput] = useState<string>('');
+export const CustomPoemForm: React.FC<CustomPoemFormProps> = ({ onSave, onClose, initialPoem }) => {
+  const [title, setTitle] = useState<string>(initialPoem ? initialPoem.title : '');
+  const [author, setAuthor] = useState<string>(initialPoem ? initialPoem.author : '小聪明');
+  const [dynasty, setDynasty] = useState<string>(initialPoem ? initialPoem.dynasty : '生字本');
+  const [contentInput, setContentInput] = useState<string>(
+    initialPoem ? initialPoem.content.join('\n') : ''
+  );
   const [errorWord, setErrorWord] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,7 +58,7 @@ export const CustomPoemForm: React.FC<CustomPoemFormProps> = ({ onSave, onClose 
       return;
     }
 
-    const uniqueId = `custom-poem-${Date.now()}`;
+    const uniqueId = initialPoem ? initialPoem.id : `custom-poem-${Date.now()}`;
     const newPoem: Poem = {
       id: uniqueId,
       title: title.trim(),
@@ -90,7 +93,9 @@ export const CustomPoemForm: React.FC<CustomPoemFormProps> = ({ onSave, onClose 
             <Sparkles className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="font-extrabold text-stone-800 text-base">添加自选古诗/字表</h3>
+            <h3 className="font-extrabold text-stone-800 text-base">
+              {initialPoem ? '编辑自选古诗/字表' : '添加自选古诗/字表'}
+            </h3>
             <p className="text-[10px] text-stone-400">为你的孩子定制今天专属的学习任务吧！</p>
           </div>
         </div>
@@ -123,7 +128,7 @@ export const CustomPoemForm: React.FC<CustomPoemFormProps> = ({ onSave, onClose 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-stone-700 mb-1.5">
-                分组 / 栏目
+                分组 / 朝代
               </label>
               <input
                 id="input-dynasty"
@@ -184,7 +189,7 @@ export const CustomPoemForm: React.FC<CustomPoemFormProps> = ({ onSave, onClose 
               type="submit"
               className="flex-1 py-3 bg-amber-500 hover:bg-amber-600 font-bold rounded-xl text-xs text-white flex items-center justify-center gap-1 shadow-md select-none cursor-pointer active:scale-98 transition-transform"
             >
-              <Save className="w-4 h-4" /> 放入生字宝库
+              <Save className="w-4 h-4" /> {initialPoem ? '保存修改' : '放入生字宝库'}
             </button>
           </div>
         </form>
