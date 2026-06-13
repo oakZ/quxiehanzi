@@ -1,0 +1,6 @@
+{
+  "name": "儿童汉字笔顺与古诗学习",
+  "description": "专为儿童设计的汉字笔顺演示与精细轨迹书写练习器，内置中小学必背古诗词、支持自定义生字本与文本输入播报，内置AI童趣汉字说文解字小老师，配备中文发音朗读与游戏化跟写评分。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
